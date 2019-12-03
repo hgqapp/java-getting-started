@@ -25,6 +25,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -32,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -72,6 +74,21 @@ public class Main {
       model.put("message", e.getMessage());
       return "error";
     }
+  }
+
+  @ResponseBody
+  @RequestMapping("/getNodeList")
+  List<String> getNodeList() throws Exception {
+    String email = "node" + System.currentTimeMillis() + "@qq.com";
+    NodeFetcher nodefetcher = new NodeFetcher(email);
+    return nodefetcher.fetch();
+  }
+
+  @ResponseBody
+  @RequestMapping("/test")
+  List<String> test() throws Exception {
+    NodeFetcher nodefetcher = new NodeFetcher();
+    return nodefetcher.fetch();
   }
 
   @Bean
