@@ -19,7 +19,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -106,11 +105,10 @@ public class NodeFetcher {
     public String getCSRFToken(String initText) throws Exception {
         ScriptEngineManager manager = new ScriptEngineManager();
         ScriptEngine engine = manager.getEngineByName("javascript");
-        ClassPathResource classPathResource = new ClassPathResource("public/js/app.js");
         engine.eval("var window = {}");
         engine.eval(initText);
         engine.eval("function a(){return G}");
-        engine.eval(new FileReader(classPathResource.getFile()));
+        engine.eval(Js.content);
         Invocable invocable = (Invocable) engine;
         final Object result = invocable.invokeFunction("a");
         ScriptObjectMirror o = (ScriptObjectMirror) result;
