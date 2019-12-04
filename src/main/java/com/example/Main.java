@@ -25,6 +25,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.sql.DataSource;
@@ -33,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -78,17 +80,16 @@ public class Main {
 
   @ResponseBody
   @RequestMapping("/getNodeList")
-  List<String> getNodeList() throws Exception {
-    String email = "node" + System.currentTimeMillis() + "@qq.com";
-    NodeFetcher nodefetcher = new NodeFetcher(email);
-    return nodefetcher.fetch();
+  List<String> getNodeList(@RequestParam(defaultValue = "false") boolean refresh) throws Exception {
+    NodeFetcher me = NodeFetcher.me();
+    me.refresh(refresh);
+    return me.fetch();
   }
 
   @ResponseBody
   @RequestMapping("/test")
-  List<String> test() throws Exception {
-    NodeFetcher nodefetcher = new NodeFetcher();
-    return nodefetcher.fetch();
+  List<String> test() {
+    return Arrays.asList("trojan://OLwadk@45.146.122.30:443?allowInsecure=1&peer=uso30.ovod.me#%E5%85%8D%E8%B4%B9%C2%B7T%C2%B7%E7%BE%8E%E5%9B%BDON%C2%B730","trojan://OLwadk@45.12.207.242:443?allowInsecure=1&peer=jpo242.ovod.me#%E5%85%8D%E8%B4%B9%C2%B7T%C2%B7%E6%97%A5%E6%9C%ACO%C2%B7242");
   }
 
   @Bean

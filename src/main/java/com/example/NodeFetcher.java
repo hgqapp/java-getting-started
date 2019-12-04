@@ -25,7 +25,7 @@ import java.util.List;
 
 public class NodeFetcher {
 
-    private String email = "asdfjkljioj@qq.com";
+    private String email;
     private String password = "qq123456";
     private String host = "https://2046ssapi.fun";
 
@@ -33,48 +33,35 @@ public class NodeFetcher {
     private int g = 115;
     private int b = 120;
     private int x = 70;
+    private volatile boolean refresh;
 
+    private static NodeFetcher instance = new NodeFetcher();
 
     static {
         Unirest.setDefaultHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
     }
 
-    public NodeFetcher() {
+    private NodeFetcher() {
+        generateEmail();
     }
 
-    public NodeFetcher(String email) {
-        this(email, null);
+    public static NodeFetcher me() {
+        return instance;
     }
 
-    public NodeFetcher(String email, String password) {
-        this(email, password, null);
+    public NodeFetcher refresh(boolean refresh) {
+        this.refresh = refresh;
+        return this;
     }
 
-    public NodeFetcher(String email, String password, String host) {
-        if (email != null && email.trim().length() > 0) {
-            this.email = email;
+    private void generateEmail() {
+        this.email = "node" + System.currentTimeMillis() + "@qq.com";
+    }
+
+    public synchronized List<String> fetch() throws Exception {
+        if (refresh) {
+            generateEmail();
         }
-        if (password != null && password.trim().length() > 0) {
-            this.password = password;
-        }
-        if (host != null && host.trim().length() > 0) {
-            this.host = host;
-        }
-    }
-
-    /**
-     * {"exception_data":{},"code":30014,"data":{},"message":"安全校验不通过，请刷新页面重试"}
-     *
-     * @param args
-     *
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        NodeFetcher nodefetcher = new NodeFetcher();
-        nodefetcher.fetch();
-    }
-
-    public List<String> fetch() throws Exception {
         Unirest.setHttpClient(HttpClientBuilder.create().build());
         String token = parseCSRFToken();
         final boolean registed = checkIsRegisted(token);
@@ -95,7 +82,7 @@ public class NodeFetcher {
                 .asString();
     }
 
-    public String getCSRFToken(String initText) throws Exception {
+    private String getCSRFToken(String initText) throws Exception {
         ScriptEngineManager manager = new ScriptEngineManager();
         ScriptEngine engine = manager.getEngineByName("javascript");
         engine.eval("var window = {}");
@@ -108,7 +95,7 @@ public class NodeFetcher {
         return o.get("csrf_token").toString();
     }
 
-    public String parseCSRFToken() throws Exception {
+    private String parseCSRFToken() throws Exception {
         final HttpResponse<String> loginBody = Unirest.get(host + "/portal/account/login").asString();
         final Document document = Jsoup.parse(loginBody.getBody());
         final Elements fixedScript = document.getElementsByAttributeValue("data-id", "fixed_script");
@@ -116,7 +103,7 @@ public class NodeFetcher {
         return getCSRFToken(data);
     }
 
-    public boolean checkIsRegisted(String token) throws Exception {
+    private boolean checkIsRegisted(String token) throws Exception {
         final String code = getCode().trim();
         System.out.println("请求Token：" + token);
         System.out.println("请求验证码：" + code);
@@ -134,7 +121,7 @@ public class NodeFetcher {
         return data.getBoolean("is_registed");
     }
 
-    public void regist() throws Exception {
+    private void regist() throws Exception {
         Unirest.post(host + "/user/account/regist")
                 .field("email", email)
                 .field("password", password)
@@ -145,7 +132,7 @@ public class NodeFetcher {
                 .asString();
     }
 
-    public List<String> getNodeList() throws Exception {
+    private List<String> getNodeList() throws Exception {
         HttpResponse<String> response = Unirest.get(host + "/portal/order/node").asString();
         String body = response.getBody();
         body = body.substring(body.indexOf("node_data:") + 10);
@@ -170,7 +157,7 @@ public class NodeFetcher {
         return result;
     }
 
-    public String getCode() throws Exception {
+    private String getCode() throws Exception {
         HttpResponse<InputStream> binary = Unirest.get(host + "/portal/account/get-verify-image").asBinary();
         InputStream input = binary.getBody();
         BufferedImage bufferedImage = removeBackground(input);
@@ -193,7 +180,7 @@ public class NodeFetcher {
         return wordsResult.getJSONObject(0).getString("words");
     }
 
-    public BufferedImage removeBackground(InputStream input) throws Exception {
+    private BufferedImage removeBackground(InputStream input) throws Exception {
         BufferedImage img = ImageIO.read(input);
         int width = img.getWidth();
         int height = img.getHeight();
@@ -207,7 +194,7 @@ public class NodeFetcher {
         return img;
     }
 
-    public boolean checkColor(int rgb) {
+    private boolean checkColor(int rgb) {
         final Color color = new Color(rgb);
         return color.getRed() > (r - x) && color.getRed() < (r + x)
                 && color.getGreen() > (g - x) && color.getGreen() < (r + x)
