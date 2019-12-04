@@ -4,14 +4,12 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
-import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.Tesseract;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
-import org.springframework.core.io.ClassPathResource;
 
 import javax.imageio.ImageIO;
 import javax.script.Invocable;
@@ -19,9 +17,10 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 public class NodeFetcher {
@@ -34,16 +33,10 @@ public class NodeFetcher {
     private int g = 115;
     private int b = 120;
     private int x = 70;
-    private static ITesseract tesseract = new Tesseract();
 
 
     static {
         Unirest.setDefaultHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
-        tesseract.setLanguage("eng");
-        try {
-            tesseract.setDatapath(new ClassPathResource("tessdata").getFile().getAbsolutePath());
-        } catch (IOException ignore) {
-        }
     }
 
     public NodeFetcher() {
@@ -181,7 +174,23 @@ public class NodeFetcher {
         HttpResponse<InputStream> binary = Unirest.get(host + "/portal/account/get-verify-image").asBinary();
         InputStream input = binary.getBody();
         BufferedImage bufferedImage = removeBackground(input);
-        return tesseract.doOCR(bufferedImage);
+        return doOCR(bufferedImage);
+    }
+
+    private String doOCR(BufferedImage image) throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpg", output);
+        String img = Base64.getMimeEncoder().encodeToString(output.toByteArray());
+        final HttpResponse<JsonNode> response = Unirest
+                .post("https://aip.baidubce.com/rest/2.0/ocr/v1/webimage")
+                .queryString("access_token", "24.87b1fcdb916f4fd0f0e18005e856ecd8.2592000.1577414312.282335-17867261")
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .field("image", img)
+                .field("language_type", "ENG")
+                .asJson();
+        JsonNode body = response.getBody();
+        JSONArray wordsResult = body.getObject().getJSONArray("words_result");
+        return wordsResult.getJSONObject(0).getString("words");
     }
 
     public BufferedImage removeBackground(InputStream input) throws Exception {
